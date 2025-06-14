@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/home/dave/Stock_app/stock_predictor.py", line 1, in <module>
+    import yfinance as yf
+ModuleNotFoundError: No module named 'yfinance'
+Traceback (most recent call last):
+  File "/home/dave/Stock_app/backtest_runner.py", line 2, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'
+===== DAILY RUN STARTED: 2025-06-14 08:00:01.331857 =====
+Running stock predictor...
+Running backtest runner...
+✅ Email sent successfully.
+===== DAILY RUN COMPLETED: 2025-06-14 08:00:05.676938 =====
