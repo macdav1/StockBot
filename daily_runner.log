@@ -11,3 +11,13 @@ Running stock predictor...
 Running backtest runner...
 ✅ Email sent successfully.
 ===== DAILY RUN COMPLETED: 2025-06-14 08:00:05.676938 =====
+python3: can't open file '/home/dave/stock_predictor.py': [Errno 2] No such file or directory
+python3: can't open file '/home/dave/backtest_runner.py': [Errno 2] No such file or directory
+===== DAILY RUN STARTED: 2025-06-15 08:00:01.892582 =====
+Running stock predictor...
+Running backtest runner...
+Traceback (most recent call last):
+  File "/home/dave/Stock_app/daily_runner.py", line 16, in <module>
+    email_notifier.send_prediction_report()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'email_notifier' has no attribute 'send_prediction_report'
