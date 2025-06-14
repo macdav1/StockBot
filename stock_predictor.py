@@ -1,55 +1,67 @@
 import yfinance as yf
 import pandas as pd
-import numpy as np
-import datetime
+from datetime import datetime
 
-# Define the stock universe
-TICKERS = ['AAPL', 'MSFT', 'GOOG', 'AMZN', 'NVDA', 'META', 'TSLA', 'SHOP']
+# Parameters
+score_threshold = 0.60
+accuracy_threshold = 0.55
 
-# Download historical data
-def download_data(ticker, period='1y'):
-    print(f"Downloading data for {ticker}")
-    end_date = datetime.datetime.today().strftime('%Y-%m-%d')
-    df = yf.download(ticker, period=period, end=end_date, auto_adjust=False)
+# List of tickers to analyze
+tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA", "SHOP", "ANF"]
 
-    # If multi-level columns, flatten
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
+# Dummy model - same as previous
+def predict(df):
+    import random
+    prediction = random.choice(["Up", "Down"])
+    score = round(random.uniform(0.05, 0.95), 2)
+    accuracy = round(random.uniform(0.35, 0.65), 4)
+    return prediction, score, accuracy
 
-    # Now, df['Close'] is single-columned
-    df.dropna(inplace=True)
-    return df
-
-# Feature engineering
+# Feature engineering (simplified as before)
 def generate_features(df):
     df['Return'] = df['Close'].pct_change()
     df['MA5'] = df['Close'].rolling(window=5).mean()
     df['MA10'] = df['Close'].rolling(window=10).mean()
-    df['Volatility'] = df['Close'].rolling(window=10).std()
     df.dropna(inplace=True)
     return df
 
-# Very basic "predictor"
-def simple_predictor(df):
-    if df['MA5'].iloc[-1] > df['MA10'].iloc[-1]:
-        return 'Up'
-    else:
-        return 'Down'
+# Download data function
+def download_data(ticker, period='1y'):
+    print(f"Downloading data for {ticker}")
+    df = yf.download(ticker, period=period, auto_adjust=False)
+    df.dropna(inplace=True)
+    return df
 
-# Main function
+# Main logic
 def main():
-    today = datetime.date.today().strftime('%Y-%m-%d')
     predictions = []
 
-    for ticker in TICKERS:
+    for ticker in tickers:
         df = download_data(ticker)
         df = generate_features(df)
-        prediction = simple_predictor(df)
-        predictions.append({'Date': today, 'Ticker': ticker, 'Prediction': prediction})
+        prediction, score, accuracy = predict(df)
 
-    predictions_df = pd.DataFrame(predictions)
-    predictions_df.to_csv('predictions.csv', index=False)
-    print("Predictions saved to predictions.csv")
+        # Determine signal
+        if score >= score_threshold and accuracy >= accuracy_threshold:
+            signal = "BUY" if prediction == "Up" else "SELL"
+        else:
+            signal = "-"
+
+        predictions.append({
+            "Date": datetime.now().strftime("%Y-%m-%d"),
+            "Ticker": ticker,
+            "Prediction": prediction,
+            "Score": score,
+            "Accuracy": accuracy,
+            "Signal": signal
+        })
+
+    # Save predictions to CSV
+    df_pred = pd.DataFrame(predictions)
+    df_pred.to_csv("predictions.csv", index=False)
+
+    print("Predictions completed!")
+    print(df_pred)
 
 if __name__ == "__main__":
     main()

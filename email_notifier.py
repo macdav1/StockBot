@@ -1,31 +1,41 @@
+import os
 import smtplib
-import ssl
-from email.mime.text import MIMEText
+import pandas as pd
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from dotenv import load_dotenv
 
-# ---- CONFIG ----
-EMAIL_ADDRESS = "davidmacphail54@gmail.com"
-EMAIL_PASSWORD = "ofel uagq eljb zufp"  # Your app password
-EMAIL_SMTP_SERVER = "smtp.gmail.com"
-EMAIL_SMTP_PORT = 465
-EMAIL_RECEIVER = "davidmacphail54@gmail.com"
-# -----------------
+# Load environment variables
+load_dotenv()
+
+EMAIL_SENDER = os.getenv("EMAIL_SENDER")
+EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
+EMAIL_SUBJECT = os.getenv("EMAIL_SUBJECT", "Daily Stock Prediction Report")
+EMAIL_SMTP_SERVER = os.getenv("EMAIL_SMTP_SERVER")
+EMAIL_SMTP_PORT = int(os.getenv("EMAIL_SMTP_PORT", 587))
+EMAIL_USERNAME = os.getenv("EMAIL_USERNAME")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 def send_email(subject, body):
-    message = MIMEMultipart()
-    message["From"] = EMAIL_ADDRESS
-    message["To"] = EMAIL_RECEIVER
-    message["Subject"] = subject
+    msg = MIMEMultipart()
+    msg['From'] = EMAIL_SENDER
+    msg['To'] = EMAIL_RECEIVER
+    msg['Subject'] = subject
 
-    message.attach(MIMEText(body, "plain"))
+    msg.attach(MIMEText(body, 'plain'))
 
-    context = ssl.create_default_context()
+    with smtplib.SMTP(EMAIL_SMTP_SERVER, EMAIL_SMTP_PORT) as server:
+        server.starttls()
+        server.login(EMAIL_USERNAME, EMAIL_PASSWORD)
+        server.send_message(msg)
 
-    try:
-        with smtplib.SMTP_SSL(EMAIL_SMTP_SERVER, EMAIL_SMTP_PORT, context=context) as server:
-            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            server.sendmail(EMAIL_ADDRESS, EMAIL_RECEIVER, message.as_string())
-            print("✅ Email sent successfully.")
-    except Exception as e:
-        print(f"❌ Failed to send email: {e}")
+def send_prediction_report():
+    predictions = pd.read_csv("predictions.csv")
+    if predictions.empty:
+        report = "No predictions for today."
+    else:
+        report = predictions.to_string(index=False)
+
+    subject = EMAIL_SUBJECT
+    send_email(subject, report)
 
