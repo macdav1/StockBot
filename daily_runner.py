@@ -1,19 +1,30 @@
 import subprocess
+import datetime
 import email_notifier
-import trader
+import trade_executor
+from logger import logger
 
-print("===== DAILY RUN STARTED =====")
-print("Running stock predictor...")
+
+logger.info(f"===== DAILY RUN STARTED: {datetime.datetime.now()} =====")
+
+logger.info("Running stock predictor...")
 subprocess.run(["python3", "stock_predictor.py"])
+logger.info("Predictions completed!")
 
-print("Running backtest runner...")
+logger.info("Running backtest runner...")
 subprocess.run(["python3", "backtest_runner.py"])
+logger.info("Backtest completed!")
 
-print("Running trading module...")
-trades = trader.run_trader()
+logger.info("Running trading module...")
+trades = trade_executor.execute_trades()
 
-# Email report as usual
-email_notifier.send_prediction_report(extra_message="\nTrades Executed:\n" + "\n".join(trades) if trades else "\nNo trades executed today.")
+# Build trade report for email
+if trades:
+    trade_message = "\nTrades Executed:\n" + "\n".join(trades)
+else:
+    trade_message = "\nNo trades executed today."
 
-print("===== DAILY RUN COMPLETED =====")
+email_notifier.send_prediction_report(extra_message=trade_message)
+
+logger.info(f"===== DAILY RUN COMPLETED: {datetime.datetime.now()} =====")
 

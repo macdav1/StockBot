@@ -21,3 +21,9 @@ Traceback (most recent call last):
     email_notifier.send_prediction_report()
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: module 'email_notifier' has no attribute 'send_prediction_report'
+Traceback (most recent call last):
+  File "/home/dave/Stock_app/daily_runner.py", line 3, in <module>
+    import email_notifier
+  File "/home/dave/Stock_app/email_notifier.py", line 2, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'
