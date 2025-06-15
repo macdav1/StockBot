@@ -1,84 +1,87 @@
-import os
 import pandas as pd
 import alpaca_trade_api as tradeapi
+import os
+import logging
 from dotenv import load_dotenv
-from datetime import datetime
 
-# Load environment variables
 load_dotenv()
 
+# Setup logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+fh = logging.FileHandler("logs/trading.log")
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
+
+# Alpaca credentials
 ALPACA_API_KEY = os.getenv("ALPACA_API_KEY")
 ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
-ALPACA_PAPER_BASE_URL = os.getenv("ALPACA_PAPER_BASE_URL")
+ALPACA_BASE_URL = os.getenv("ALPACA_PAPER_BASE_URL")
 
-BUY_THRESHOLD = float(os.getenv("BUY_THRESHOLD", 0.7))
-SELL_THRESHOLD = float(os.getenv("SELL_THRESHOLD", 0.7))
-TRADE_QTY = int(os.getenv("TRADE_QTY", 1))
+api = tradeapi.REST(ALPACA_API_KEY, ALPACA_SECRET_KEY, ALPACA_BASE_URL, api_version='v2')
 
-# Initialize Alpaca API connection
-api = tradeapi.REST(
-    key_id=ALPACA_API_KEY,
-    secret_key=ALPACA_SECRET_KEY,
-    base_url=ALPACA_PAPER_BASE_URL
-)
+BUY_THRESHOLD = 0.7
+SELL_THRESHOLD = 0.3
+TRADE_AMOUNT_USD = 1000
 
-# Load today's predictions
-PREDICTIONS_FILE = "predictions.csv"
-TRADE_LOG_FILE = "trade_log.csv"
-
-if not os.path.exists(PREDICTIONS_FILE):
-    print("No predictions file found for today. Skipping trades.")
-    exit()
-
-predictions = pd.read_csv(PREDICTIONS_FILE)
-
-# Prepare log file if it doesn't exist
-if not os.path.exists(TRADE_LOG_FILE):
-    pd.DataFrame(columns=["Timestamp", "Ticker", "Action", "Qty", "Score"]).to_csv(TRADE_LOG_FILE, index=False)
-
-# Trading logic
-for index, row in predictions.iterrows():
-    ticker = row["Ticker"]
-    prediction = row["Prediction"]
-    score = row["Score"]
-
+def execute_trades():
+    trades_executed = []
+    
     try:
-        if prediction == "Up" and score >= BUY_THRESHOLD:
-            print(f"Buying {TRADE_QTY} shares of {ticker} (Score: {score})")
-            api.submit_order(
-                symbol=ticker,
-                qty=TRADE_QTY,
-                side="buy",
-                type="market",
-                time_in_force="day"
-            )
-            action = "BUY"
-        elif prediction == "Down" and score >= SELL_THRESHOLD:
-            print(f"Selling {TRADE_QTY} shares of {ticker} (Score: {score})")
-            api.submit_order(
-                symbol=ticker,
-                qty=TRADE_QTY,
-                side="sell",
-                type="market",
-                time_in_force="day"
-            )
-            action = "SELL"
-        else:
-            print(f"No trade for {ticker} (Score: {score})")
-            action = "NO TRADE"
-
-        # Append to log
-        log_entry = pd.DataFrame([{
-            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Ticker": ticker,
-            "Action": action,
-            "Qty": TRADE_QTY if action != "NO TRADE" else 0,
-            "Score": score
-        }])
-        log_entry.to_csv(TRADE_LOG_FILE, mode='a', header=False, index=False)
-
+        df = pd.read_csv("predictions.csv")
     except Exception as e:
-        print(f"Error trading {ticker}: {e}")
+        logger.error(f"Failed to load predictions: {e}")
+        return trades_executed
 
-print("✅ Trade execution completed.")
+    for _, row in df.iterrows():
+        ticker = row['Ticker']
+        score = row['Score']
+
+        try:
+            position_qty = 0
+            try:
+                position = api.get_position(ticker)
+                position_qty = float(position.qty)
+            except tradeapi.rest.APIError:
+                position_qty = 0  # No position
+
+            latest_price = float(api.get_latest_trade(ticker).price)
+            qty = round(TRADE_AMOUNT_USD / latest_price, 4)
+
+            if score >= BUY_THRESHOLD:
+                api.submit_order(
+                    symbol=ticker,
+                    qty=qty,
+                    side='buy',
+                    type='market',
+                    time_in_force='day'  # DAY required for fractional trades
+                )
+                trades_executed.append(f"BUY {qty} shares of {ticker} at {latest_price}")
+                logger.info(f"BUY {qty} shares of {ticker} at {latest_price}")
+
+            elif score <= SELL_THRESHOLD:
+                if position_qty > 0:
+                    sell_qty = min(position_qty, qty)
+                    api.submit_order(
+                        symbol=ticker,
+                        qty=sell_qty,
+                        side='sell',
+                        type='market',
+                        time_in_force='day'
+                    )
+                    trades_executed.append(f"SELL {sell_qty} shares of {ticker} at {latest_price}")
+                    logger.info(f"SELL {sell_qty} shares of {ticker} at {latest_price}")
+                else:
+                    logger.warning(f"Skipping SELL for {ticker} due to zero holdings (wash trade prevention).")
+            else:
+                logger.info(f"No trade for {ticker} (Score: {score})")
+
+        except tradeapi.rest.APIError as e:
+            logger.error(f"Error trading {ticker}: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error for {ticker}: {e}")
+
+    logger.info("✅ Trade execution completed.")
+    return trades_executed
 

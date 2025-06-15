@@ -1,6 +1,8 @@
 import yfinance as yf
 import pandas as pd
 from datetime import datetime
+from logger import logger
+
 
 # Parameters
 score_threshold = 0.60
@@ -27,7 +29,7 @@ def generate_features(df):
 
 # Download data function
 def download_data(ticker, period='1y'):
-    print(f"Downloading data for {ticker}")
+    logger.info(f"Downloading data for {ticker}")
     df = yf.download(ticker, period=period, auto_adjust=False)
     df.dropna(inplace=True)
     return df
@@ -60,8 +62,8 @@ def main():
     df_pred = pd.DataFrame(predictions)
     df_pred.to_csv("predictions.csv", index=False)
 
-    print("Predictions completed!")
-    print(df_pred)
+    logger.info("Predictions completed!")
+    logger.info(df_pred)
 
 if __name__ == "__main__":
     main()

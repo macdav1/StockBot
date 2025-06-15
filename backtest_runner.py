@@ -4,6 +4,8 @@ import numpy as np
 import datetime
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+from logger import logger
+
 
 # ===== CONFIGURATION =====
 
@@ -15,7 +17,7 @@ results_file = "backtest_results.csv"
 # ===== FEATURE ENGINEERING =====
 
 def download_data(ticker, start, end):
-    print(f"Downloading data for {ticker} from {start} to {end}")
+    logger.info(f"Downloading data for {ticker} from {start} to {end}")
     df = yf.download(ticker, start=start, end=end)
     df.dropna(inplace=True)
     return df
@@ -86,12 +88,12 @@ for ticker in tickers:
         })
 
     except Exception as e:
-        print(f"Error processing {ticker}: {e}")
+        logger.error(f"Error processing {ticker}: {e}")
 
 result_df = pd.DataFrame(all_results)
 if not result_df.empty:
-    print(result_df)
+    logger.info(result_df)
     result_df.to_csv(results_file, index=False)
 else:
-    print("No backtest results generated.")
+    logger.info("No backtest results generated.")
 
