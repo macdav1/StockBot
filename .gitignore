@@ -1,0 +1,14 @@
+# Ignore everything
+*
+
+# Keep python scripts
+!*.py
+
+# Keep CSVs
+!*.csv
+
+# Keep JSON files
+!*.json
+
+# Keep this .gitignore itself
+!.gitignore

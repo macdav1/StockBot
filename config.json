@@ -1,0 +1,36 @@
+{
+  "score_threshold": 0.6,
+  "accuracy_threshold": 0.55,
+  "min_signal_strength": 0.7,
+  "confidence_override_threshold": 0.8,
+  "tickers": [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "META",
+    "TSLA",
+    "SHOP",
+    "ANF",
+    "USOI"
+  ],
+  "filters": {
+    "enable_moving_average_filter": true,
+    "ma_days": 5,
+    "enable_volume_spike_filter": true,
+    "volume_days": 5
+  },
+  "model_path": "xgb_model.json",
+  "scaler_path": "scaler.save",
+  "data_period": "6mo",
+  "initial_equity": 194,
+  "trade_amount": 25,
+  "hold_days": 1,
+  "profit_threshold_pct": 5,
+  "price_move_threshold_pct": 0.02,
+  "volume_decline_days": 5,
+  "max_position_value": 100,
+  "min_cash_reserve": 10,
+  "starting date": "2025-08-01",
+  "starting_value": 190  
+}
