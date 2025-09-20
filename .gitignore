@@ -12,3 +12,4 @@
 
 # Keep this .gitignore itself
 !.gitignore
+service_account.json
