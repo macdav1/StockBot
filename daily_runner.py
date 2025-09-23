@@ -7,6 +7,11 @@ from logger import logger
 
 logger.info(f"===== DAILY RUN STARTED: {datetime.datetime.now()} =====")
 
+logger.info("Running cashflow updater...")
+# Run cashflow updater before anything else
+subprocess.run(["python3", "update_cashflow_from_alpaca.py"])
+logger.info("Cashflow updater completed!")
+
 logger.info("Running stock predictor...")
 subprocess.run(["python3", "stock_predictor.py"])
 logger.info("Predictions completed!")

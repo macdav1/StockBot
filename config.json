@@ -1,5 +1,5 @@
 {
-  "score_threshold": 0.6,
+  "score_threshold": 0.75,
   "accuracy_threshold": 0.55,
   "min_signal_strength": 0.7,
   "confidence_override_threshold": 0.8,
