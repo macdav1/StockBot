@@ -5,6 +5,7 @@ import pandas as pd
 import datetime
 from dotenv import load_dotenv
 import alpaca_trade_api as tradeapi
+from utils.trade_logger import log_trade
 from email_notifier import send_email  # Make sure this module exists
 
 # Load environment
@@ -85,8 +86,14 @@ def execute_buys():
                     type='market',
                     time_in_force='day'
                 )
+
+                latest_trade = api.get_latest_trade(ticker)
+                latest_price = float(latest_trade.price)
+
                 logger.info(f"BUY {qty} shares of {ticker} at ${latest_price:.2f}")
                 trades_executed.append(f"BUY {qty} {ticker} @ ${latest_price:.2f} (Score: {score:.2f})")
+
+                log_trade(ticker, "BUY", qty, latest_price, score)
 
             except Exception as e:
                 logger.error(f"❌ Failed to buy {ticker}: {e}")

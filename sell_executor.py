@@ -8,6 +8,7 @@ import alpaca_trade_api as tradeapi
 from email_notifier import send_email
 from alpaca_trade_api.rest import REST, TimeFrame
 from track_stock_peaks import update_peak, remove_peak
+from utils.trade_logger import log_trade 
 
 load_dotenv()
 
@@ -160,20 +161,12 @@ def execute_sells():
                     type='market',
                     time_in_force='day'
                 )
-                logger.info(f"SELL {sell_qty} shares of {ticker} at {latest_price}")
+                logger.info(f"SELL {sell_qty} shares of {ticker} at ${latest_price:.2f}")
                 trades_executed.append(f"SELL {sell_qty} {ticker}")
                 remove_peak(ticker)
 
-                log_entry = {
-                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "Ticker": ticker,
-                    "Action": "SELL",
-                    "Qty": round(sell_qty, 4),
-                    "Price": round(latest_price, 2),
-                    "Score": round(score, 4)
-                }
-                df_log = pd.DataFrame([log_entry])
-                df_log.to_csv("trade_log.csv", mode='a', header=not os.path.exists("trade_log.csv"), index=False)
+                # Use the shared helper
+                log_trade(ticker, "SELL", sell_qty, latest_price, score)
 
             except Exception as e:
                 logger.error(f"Error selling {ticker}: {e}")
@@ -260,16 +253,8 @@ def execute_sells():
                 trades_executed.append(f"Fallback SELL {round(sell_qty, 4)} {ticker}")
                 logger.info(f"✅ FALLBACK SELL {sell_qty} shares of {ticker} at {current_price}")
 
-                log_entry = {
-                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "Ticker": ticker,
-                    "Action": "FALLBACK_SELL",
-                    "Qty": round(sell_qty, 4),
-                    "Price": round(current_price, 2),
-                    "Score": "N/A"
-                }
-                pd.DataFrame([log_entry]).to_csv("trade_log.csv", mode='a',
-                                                header=not os.path.exists("trade_log.csv"), index=False)
+                # Use shared logger
+                log_trade(ticker, "FALLBACK_SELL", sell_qty, current_price, score=None)
 
             except Exception as e:
                 logger.error(f"Fallback SELL failed for {ticker}: {e}")

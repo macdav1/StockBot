@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
+from email_notifier import send_prediction_report
 from datetime import datetime
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -197,15 +198,38 @@ def main():
         (df_all["Accuracy"] >= accuracy_threshold)
     ]
 
+    # --- Only keep top 6 signals by Score, descending ---
+    df_signals = df_signals.sort_values(by='Score', ascending=False).head(6)
     # --- Save outputs ---
     df_all.to_csv("all_predictions.csv", index=False)
     df_signals.to_csv("predictions.csv", index=False)
+
+    # --- Append today's predictions to history ---
+    history_file = "predictions_history.csv"
+    if os.path.exists(history_file):
+        hist_df = pd.read_csv(history_file, parse_dates=["Date"])
+        # ensure Date column is datetime for comparison
+        hist_df["Date"] = pd.to_datetime(hist_df["Date"]).dt.date
+        today = pd.to_datetime("today").date()
+        # drop any existing rows for today (avoid duplicates)
+        hist_df = hist_df[hist_df["Date"] != today]
+        # append today’s predictions
+        updated = pd.concat([hist_df, df_signals], ignore_index=True)
+        updated.to_csv(history_file, index=False)
+    else:
+        # if no history yet, create it from today’s signals
+        df_signals.to_csv(history_file, index=False)
 
     logger.info("Predictions completed!")
     logger.info("All predictions saved to all_predictions.csv")
     logger.info("Actionable signals saved to predictions.csv")
     logger.info("Sample actionable signals:\n%s", df_signals.head(10).to_dict(orient="records"))
 
+    # --- Send email report with top predictions ---
+    if not df_signals.empty:
+        send_prediction_report(df_signals)
+    else:
+        send_email("Daily Predictions", "⚠️ No actionable signals for today.")
 
 if __name__ == "__main__":
     main()
