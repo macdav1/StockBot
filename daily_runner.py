@@ -11,21 +11,34 @@ logger.info(f"===== DAILY RUN STARTED: {datetime.datetime.now()} =====")
 # Run cashflow updater before anything else
 #subprocess.run(["python3", "update_cashflow_from_alpaca.py"])
 ###logger.info("Cashflow updater completed!")
+
+##logger.info("Running backtest runner over last nights predictions...")
+##subprocess.run(["python3", "backtest_runner.py"])
+##logger.info("Backtest completed!")
+
 logger.info("Updating portfolio.csv with the latest...")
 subprocess.run(["python3", "import_portfolio.py"])
 logger.info("Portfolio update complete!")
+
+logger.info("Running the scrape yahoo for top gainers and active stock...")
+subprocess.run(["python3", "scrape_yahoo.py"])
+logger.info("Scrape Yahoo is completed!")
 
 logger.info("Running stock predictor...")
 subprocess.run(["python3", "stock_predictor.py"])
 logger.info("Predictions completed!")
 
-logger.info("Running backtest runner...")
-subprocess.run(["python3", "backtest_runner.py"])
-logger.info("Backtest completed!")
+logger.info("Validate 3-day-old predictions...")
+subprocess.run(["python3", "validate_predictions.py"])
+logger.info("Predictions completed!")
 
-logger.info("Running Trade accuracy evaluation ...")
-subprocess.run(["python3", "evaluate_trade_accuracy.py"], check=True)
-logging.info("✅ Trade accuracy evaluation finished")
+logger.info("Running update google sheets for metrics...")
+subprocess.run(["python3", "update_google_sheets.py"], check=True)
+logger.info("✅ Update google sheets finished")
+
+logger.info("Running Sentiment checker ...")
+subprocess.run(["python3", "sentiment_checker.py"])
+logger.info("✅ Sentiment checker finished")
 
 logger.info("Running trading module...")
 trades = trade_executor.execute_trades()

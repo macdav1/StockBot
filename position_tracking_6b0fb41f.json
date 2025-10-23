@@ -1,0 +1,30 @@
+{
+  "INTC": {
+    "purchase_date": "2025-09-23",
+    "entry_price": 29.048,
+    "initial_quantity": 0.8609,
+    "opened_at": "2025-10-15T09:37:09.325674",
+    "note": "Initialized from existing position - actual purchase date unknown"
+  },
+  "LITE": {
+    "purchase_date": "2025-09-25",
+    "entry_price": 147.758,
+    "initial_quantity": 0.1694,
+    "opened_at": "2025-10-15T09:37:09.325767",
+    "note": "Initialized from existing position - actual purchase date unknown"
+  },
+  "MTG": {
+    "purchase_date": "2025-07-30",
+    "entry_price": 25.702,
+    "initial_quantity": 1.9462,
+    "opened_at": "2025-10-15T09:37:09.325824",
+    "note": "Initialized from existing position - actual purchase date unknown"
+  },
+  "WFC": {
+    "purchase_date": "2025-08-18",
+    "entry_price": 77.07,
+    "initial_quantity": 0.3242,
+    "opened_at": "2025-10-15T09:37:09.325867",
+    "note": "Initialized from existing position - actual purchase date unknown"
+  }
+}

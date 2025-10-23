@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import json
 from datetime import datetime
 import pandas as pd
 from dotenv import load_dotenv
@@ -22,6 +23,17 @@ API_KEY = os.getenv("ALPACA_API_KEY")
 API_SECRET = os.getenv("ALPACA_SECRET_KEY")
 BASE_URL = os.getenv("ALPACA_PAPER_BASE_URL")
 rest_api = REST(API_KEY, API_SECRET, base_url=BASE_URL)
+
+# === Load config.json ===
+CONFIG_PATH = "config.json"
+if os.path.exists(CONFIG_PATH):
+    with open(CONFIG_PATH, "r") as f:
+        config = json.load(f)
+else:
+    config = {}
+
+FILTER_2TO20 = config.get("2to20", False)  # default False if missing
+
 
 def get_top_stocks():
     logger.info("🔍 Getting active stock list...")
@@ -58,6 +70,15 @@ def get_top_stocks():
 
     df = pd.DataFrame(bar_data, columns=["Symbol", "Volume", "Close"])
     df["DollarVolume"] = df["Volume"] * df["Close"]
+
+    # === Apply $2 to $20 filter if enabled ===
+    if FILTER_2TO20:
+        before_count = len(df)
+        df = df[(df["Close"] >= 2.0) & (df["Close"] <= 20.0)]
+        after_count = len(df)
+        logger.info(f"⚙️ 2to20 filter active: reduced from {before_count} to {after_count} stocks.")
+
+
     df = df.sort_values(by="DollarVolume", ascending=False)
 
     top_100 = df.head(100)

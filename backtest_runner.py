@@ -5,11 +5,26 @@ import datetime
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from logger import logger
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 # ===== CONFIGURATION =====
+# Load the predictions file
+predictions = pd.read_csv("predictions.csv")
 
-tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA", "SHOP"]
+# Filter only the BUY signals if you only want to backtest long positions
+buy_signals = predictions[predictions["Signal"] == "BUY"]
+
+# Extract the tickers to backtest
+tickers_to_backtest = buy_signals["Ticker"].unique().tolist()
+
+print("Backtesting the following tickers:", tickers_to_backtest)
+
+tickers = tickers_to_backtest
+
+
+##tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA", "SHOP"]
 backtest_start = "2023-01-01"
 backtest_end = datetime.date.today().strftime("%Y-%m-%d")
 results_file = "backtest_results.csv"

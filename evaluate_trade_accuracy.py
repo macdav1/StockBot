@@ -44,6 +44,7 @@ def compute_profit_percentages():
     df = df.sort_values("Date")
 
     latest_value = df.iloc[-1]["Portfolio Value"]
+    logger.info(f"📊 Calculated portfolio value is: {latest_value}")
 
     # --- Monthly ---
     month_start = datetime.today().replace(day=1)
@@ -200,6 +201,7 @@ def evaluate_trades_and_email(days_recent=3):
                 #trade_log_path="trade_log.csv"#,
                 #portfolio_path="portfolio.csv"
             )
+            metrics["trade_accuracy"] = round(precision_all, 2)
             log_daily_portfolio(metrics)
             # 2. Compute monthly & YTD % from history
             #profit_percents = compute_profit_percentages()

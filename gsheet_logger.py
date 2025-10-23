@@ -62,7 +62,8 @@ def log_metrics(metrics: dict):
         "monthly_profit_pct": "Monthly Profit %",
         "ytd_profit_pct": "YTD Profit %",
         "monthly_profit": "Monthly Profit",
-        "ytd_profit": "YTD Profit"
+        "ytd_profit": "YTD Profit",
+        "trade_accuracy": "Trade Accuracy"   # ✅ New metric added
     }
 
     for key, metric_name in mapping.items():

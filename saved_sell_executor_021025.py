@@ -8,9 +8,7 @@ import alpaca_trade_api as tradeapi
 from email_notifier import send_email
 from alpaca_trade_api.rest import REST, TimeFrame
 from track_stock_peaks import update_peak, remove_peak
-from utils.trade_logger import log_trade
-from utils.holding import has_held_long_enough
- 
+from utils.trade_logger import log_trade 
 
 load_dotenv()
 
@@ -37,6 +35,22 @@ with open(CONFIG_PATH) as f:
 HOLD_DAYS = int(config.get("hold_days", 3))
 TRADE_AMOUNT_USD = float(config.get("trade_amount", 30))
 portfolio_file = "portfolio.csv"
+
+
+def has_held_long_enough(ticker, now, hold_days):
+    history_file = "trade_log.csv"
+    if not os.path.exists(history_file):
+        return True
+
+    df = pd.read_csv(history_file)
+    df = df[(df["Ticker"] == ticker) & (df["Action"].str.upper() == "BUY")]
+    if df.empty:
+        return True
+
+    last_buy_time = max(pd.to_datetime(df["Timestamp"]))
+    days_held = (now - last_buy_time).days
+    return days_held >= hold_days
+
 
 def execute_sells():
     trades_executed = []
@@ -140,23 +154,26 @@ def execute_sells():
 
                 sell_qty = min(position_qty, round(TRADE_AMOUNT_USD / latest_price, 4))
 
-            # Submit sell
-            api.submit_order(
-                symbol=ticker,
-                qty=sell_qty,
-                side='sell',
-                type='market',
-                time_in_force='day'
-            )
-            logger.info(f"SELL {sell_qty} shares of {ticker} at ${latest_price:.2f}")
-            trades_executed.append(f"SELL {sell_qty} {ticker}")
-            remove_peak(ticker)
-            log_trade(ticker, "SELL", sell_qty, latest_price, score)
+                api.submit_order(
+                    symbol=ticker,
+                    qty=sell_qty,
+                    side='sell',
+                    type='market',
+                    time_in_force='day'
+                )
+                logger.info(f"SELL {sell_qty} shares of {ticker} at ${latest_price:.2f}")
+                trades_executed.append(f"SELL {sell_qty} {ticker}")
+                remove_peak(ticker)
+
+                # Use the shared helper
+                log_trade(ticker, "SELL", sell_qty, latest_price, score)
+
+            except Exception as e:
+                logger.error(f"Error selling {ticker}: {e}")
 
     except Exception as e:
         logger.error(f"Unexpected error in sell_executor: {e}")
 
-    # ✅ portfolio update still here
     try:
         positions = api.list_positions()
         portfolio_data = []
@@ -165,6 +182,7 @@ def execute_sells():
             avg_price = float(p.avg_entry_price)
             shares = float(p.qty)
             pl = (current_price - avg_price) * shares
+
             portfolio_data.append({
                 "Ticker": p.symbol,
                 "Shares": shares,
@@ -181,7 +199,71 @@ def execute_sells():
         logger.error(f"❌ Failed to update portfolio.csv: {e}")
         print(f"⚠️ Error while updating portfolio.csv: {e}")
 
-    # ✅ email report
+    try:
+        portfolio = pd.read_csv(portfolio_file)
+
+        for _, row in portfolio.iterrows():
+            ticker = row["Ticker"]
+            avg_cost = float(row["Average Cost"])
+
+            try:
+                position = api.get_position(ticker)
+                shares = float(position.qty)
+            except tradeapi.rest.APIError:
+                shares = 0
+
+            if shares <= 0:
+                logger.info(f"Fallback skipped for {ticker}: no actual position held.")
+                continue
+
+            if not has_held_long_enough(ticker, datetime.now(), HOLD_DAYS):
+                logger.info(f"Fallback skipped for {ticker}: not held long enough.")
+                continue
+
+            current_price = float(api.get_latest_trade(ticker).price)
+            gain = (current_price - avg_cost) / avg_cost
+
+            # --- APPLY MIN-PROFIT RULE TO ALL HOLDINGS ---
+            if gain < 0.02:  # < +2% gain after HOLD_DAYS
+                logger.info(
+                    f"⚠️ FALLBACK SELL TRIGGERED (min profit rule): {ticker} held {HOLD_DAYS}+ days, "
+                    f"but gain only {gain:.2%} (<2%). Selling FULL position."
+                )
+                    # ✅ use Alpaca’s actual qty, floored to 4 decimals
+                sell_qty = round(shares - 1e-6, 4)
+            # --- ELSE: standard fallback rule for losers ---
+            elif current_price < avg_cost:
+                logger.info(
+                    f"FALLBACK SELL TRIGGERED: {ticker} is below cost ({current_price:.2f} < {avg_cost:.2f})"
+                )
+                sell_qty = round(shares - 1e-6, 4)
+            else:
+                logger.info(f"Fallback skipped for {ticker}: gain {gain:.2%}, no trigger.")
+                continue
+
+            # Submit sell
+            try:
+                api.submit_order(
+                    symbol=ticker,
+                    qty=round(sell_qty, 4),
+                    side='sell',
+                    type='market',
+                    time_in_force='day'
+                )
+                trades_executed.append(f"Fallback SELL {round(sell_qty, 4)} {ticker}")
+                logger.info(f"✅ FALLBACK SELL {sell_qty} shares of {ticker} at {current_price}")
+
+                # Use shared logger
+                log_trade(ticker, "FALLBACK_SELL", sell_qty, current_price, score=None)
+
+            except Exception as e:
+                logger.error(f"Fallback SELL failed for {ticker}: {e}")
+                continue
+
+    except Exception as e:
+        logger.error(f"Error during fallback sell logic: {e}")
+
+
     if trades_executed:
         subject = f"Sell Trades Executed - {datetime.today().date()}"
         body = "\n".join(trades_executed)
@@ -190,4 +272,10 @@ def execute_sells():
         body = "No sell trades were made today."
 
     send_email(subject, body)
+
+
+if __name__ == "__main__":
+    logger.info("▶️ Starting Sell Executor")
+    execute_sells()
+    logger.info("✅ Sell Executor finished")
 

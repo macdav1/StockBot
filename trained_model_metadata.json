@@ -1,0 +1,52 @@
+{
+  "accuracy": 0.6498533724340176,
+  "trained_date": "2025-10-19 20:00:39.368423",
+  "prediction_horizon": "3-day",
+  "score_threshold_recommended": 0.6,
+  "feature_count": 16,
+  "features": [
+    "Return",
+    "MA5",
+    "MA10",
+    "market_trend",
+    "RSI",
+    "MACD",
+    "MACD_Signal",
+    "MACD_Hist",
+    "ATR",
+    "Volatility_20",
+    "Volume_Ratio",
+    "Volume_MA5",
+    "High_Low_Ratio",
+    "Close_to_MA20",
+    "MA20",
+    "MA_Ratio_5_20"
+  ],
+  "training_samples": 40918,
+  "test_samples": 10230,
+  "ticker_source": "top_100_stocks.txt",
+  "data_period": "2y",
+  "label_distribution": {
+    "up": 25574,
+    "down": 25574
+  },
+  "model_params": {
+    "n_estimators": 300,
+    "learning_rate": 0.03,
+    "max_depth": 5,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8
+  },
+  "feature_importance": {
+    "market_trend": 0.11461131274700165,
+    "Volatility_20": 0.06471647322177887,
+    "High_Low_Ratio": 0.06410492211580276,
+    "MACD_Signal": 0.06292929500341415,
+    "MA_Ratio_5_20": 0.06232641637325287,
+    "Return": 0.06171802803874016,
+    "MA20": 0.06080932542681694,
+    "ATR": 0.06025457754731178,
+    "MACD_Hist": 0.059519212692976,
+    "Close_to_MA20": 0.059486765414476395
+  }
+}
